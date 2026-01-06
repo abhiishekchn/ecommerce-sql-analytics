@@ -1,8 +1,0 @@
-ecommerce-sql-analytics/
-│
-├── er-diagram/
-├── sql.schema/
-├── sql/
-├── data/
-├── insights/
-└── README.md
