@@ -23,6 +23,17 @@ The SQL analysis addresses key business questions such as:
 - The database schema and table relationships are documented in the ER diagram available [here](ecommerce_er_diagram/ecommerce_er_diagram.pdf)
 - The database follows a **3NF (Third Normal Form)** structure to reduce redundancy and maintain data integrity.
 
+## Key Insights
+
+- Revenue is broadly distributed across products, with no heavy dependence on a small set of top-performing items.
+- Category-level revenue contribution is well balanced, indicating a diversified and stable product portfolio.
+- Customer lifetime value is spread across a large customer base, with no significant reliance on a few high-value customers.
+- Product returns are concentrated in a small subset of items, highlighting targeted product-level risk rather than a systemic issue.
+- Shipping delays represent a material operational challenge, with delays concentrated among specific logistics partners.
+
+> Detailed insights with supporting metrics and SQL validation are documented in `insights/key_business_insights.md`.
+
+
 ## Repository Structure
 
 ```text
