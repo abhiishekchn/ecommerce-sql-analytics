@@ -374,7 +374,7 @@ ORDER BY total_order_handeled DESC;
 
 
 /* =====================================================
-   19. TOP 10 PRODUCTS WITH HIGHEST DECREASING REVENUE RATIO
+   18. TOP 10 PRODUCTS WITH HIGHEST DECREASING REVENUE RATIO
 ===================================================== */
 
 WITH Cte1 AS (
