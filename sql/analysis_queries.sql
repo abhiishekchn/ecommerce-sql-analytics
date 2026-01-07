@@ -284,3 +284,145 @@ JOIN orders o
 GROUP BY c.customer_id, full_name
 ORDER BY total_returns DESC;
 
+
+/* =====================================================
+   15. IDENTIFYING CUSTOMER AS RETURNING OR NEW
+===================================================== */
+
+WITH Cte1 AS (
+    SELECT 
+        c.customer_id AS customer_id,
+        CONCAT(c.first_name,' ',c.last_name) AS full_name,
+        COUNT(o.order_id) AS total_order,
+        SUM(CASE WHEN o.order_status = 'Returned' THEN 1 ELSE 0 END) AS returned_order
+    FROM customer AS c
+    JOIN orders AS o
+        ON o.customer_id = c.customer_id
+    GROUP BY c.customer_id
+    ORDER BY returned_order DESC
+)
+SELECT 
+    customer_id,
+    full_name,
+    total_order,
+    returned_order,
+    CASE
+        WHEN returned_order > 3 THEN 'Returning'
+        ELSE 'New'
+    END AS cust_category
+FROM cte1;
+
+
+/* =====================================================
+   16. TOP 5 CUSTOMERS BY ORDER IN EACH STATE
+===================================================== */
+
+SELECT * FROM (
+	SELECT
+		c.state,
+		c.customer_id, 
+		CONCAT(c.first_name, ' ', c.last_name) AS full_name,
+		COUNT(o.order_id) AS total_order,
+		SUM(oi.price_perunit * oi.quantity) AS total_sales,
+		DENSE_RANK() OVER(
+			PARTITION BY c.state 
+			ORDER BY COUNT(o.order_id) DESC
+		) AS ordr_rnk
+	FROM customer AS c
+	JOIN orders AS o
+		ON c.customer_id = o.customer_id
+	JOIN orderitems AS oi
+		ON o.order_id = oi.order_id
+	GROUP BY 
+		c.state,
+		c.customer_id,
+		CONCAT(c.first_name, ' ', c.last_name)
+) AS t1
+WHERE ordr_rnk <= 5;
+
+
+/* =====================================================
+   17. REVENUE BY SHIPPING PROVIDER
+===================================================== */
+
+SELECT 
+	sh.shipping_provider AS shipping_provider,
+	COUNT(o.order_id) AS total_order_handeled,
+	SUM(oi.price_perunit * oi.quantity) AS total_sales,
+	SUM(
+		CASE 
+			WHEN sh.delivery_status = 'Delivered' THEN 1 
+			ELSE 0 
+		END
+	) AS delivered_orders,
+	ROUND(
+		SUM(
+			CASE 
+				WHEN sh.delivery_status = 'Delivered' THEN 1 
+				ELSE 0 
+			END
+		) * 100 / COUNT(o.order_id), 
+		2
+	) AS delivery_rate
+FROM orders AS o
+JOIN orderitems AS oi
+	ON o.order_id = oi.order_id
+JOIN shipping AS sh
+	ON sh.order_id = o.order_id
+GROUP BY sh.shipping_provider
+ORDER BY total_order_handeled DESC;
+
+
+/* =====================================================
+   19. TOP 10 PRODUCTS WITH HIGHEST DECREASING REVENUE RATIO
+===================================================== */
+
+WITH Cte1 AS (
+	SELECT 
+		p.product_id,
+		p.product_name,
+		c.category_name,
+		SUM(oi.quantity * oi.price_perunit) AS sales_2023
+	FROM orders AS o
+	JOIN orderitems AS oi
+		ON oi.order_id = o.order_id
+	JOIN product AS p
+		ON oi.product_id = p.product_id
+	JOIN category AS c
+		ON c.category_id = p.category_id
+	WHERE YEAR(o.order_date) = 2023
+	GROUP BY p.product_id
+),
+Cte2 AS (
+	SELECT 
+		p.product_id,
+		p.product_name,
+		c.category_name,
+		SUM(oi.quantity * oi.price_perunit) AS sales_2024
+	FROM orders AS o
+	JOIN orderitems AS oi
+		ON oi.order_id = o.order_id
+	JOIN product AS p
+		ON oi.product_id = p.product_id
+	JOIN category AS c
+		ON c.category_id = p.category_id
+	WHERE YEAR(o.order_date) = 2024
+	GROUP BY p.product_id
+)
+SELECT 
+	c1.product_id,
+	c1.product_name,
+	c1.category_name,
+	c1.sales_2023,
+	c2.sales_2024,
+	ROUND(
+		(c2.sales_2024 - c1.sales_2023) * 100 / c1.sales_2023,
+		2
+	) AS dec_rev_rate
+FROM Cte1 AS c1
+JOIN Cte2 AS c2
+	ON c1.product_id = c2.product_id
+WHERE c1.sales_2023 > c2.sales_2024
+ORDER BY dec_rev_rate DESC
+LIMIT 10;
+
